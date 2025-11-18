@@ -395,23 +395,20 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
         throw Exception('API keys seem too short');
       }
 
-      // Симуляція API виклику
-      // В реальному додатку тут буде виклик до API біржі
-      await Future.delayed(const Duration(seconds: 2));
+      // Використовуємо Exchange Manager для реального тестування API
+      final exchangeManager = ref.read(exchangeManagerProvider);
 
-      // Для демонстрації: успіх якщо ключі валідні за форматом
-      // В production тут має бути реальний API виклик:
-      // - Binance: GET /api/v3/account
-      // - Bybit: GET /v5/user/query-api
-      // - OKX: GET /api/v5/account/balance
+      // Ініціалізуємо біржу з ключами
+      await exchangeManager.initializeExchange(exchangeId);
 
-      final success = _validateKeyFormat(exchangeId, apiKey, apiSecret);
+      // Тестуємо підключення через реальний API
+      final success = await exchangeManager.testConnection(exchangeId);
 
       setState(() {
         _testingConnections[exchangeId] = false;
         _connectionStatus[exchangeId] = success
-            ? 'Keys format valid. Configure real API endpoint to test connection.'
-            : 'Invalid key format';
+            ? 'Connection successful! API keys are valid.'
+            : 'Connection failed. Please check your API keys.';
       });
 
       if (mounted) {
@@ -419,8 +416,8 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
           SnackBar(
             content: Text(
               success
-                ? 'Keys format validated. Real API test requires backend configuration.'
-                : 'Connection test failed: Invalid key format',
+                  ? 'Connection test passed! Your API keys are working correctly.'
+                  : 'Connection test failed. Please verify your API keys and permissions.',
             ),
             backgroundColor: success ? AppTheme.successGreen : AppTheme.errorRed,
             duration: const Duration(seconds: 4),
@@ -441,23 +438,6 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
           ),
         );
       }
-    }
-  }
-
-  /// Базова валідація формату API ключів
-  bool _validateKeyFormat(String exchangeId, String apiKey, String apiSecret) {
-    switch (exchangeId) {
-      case 'binance':
-        // Binance API keys зазвичай 64 символи
-        return apiKey.length >= 32 && apiSecret.length >= 32;
-      case 'bybit':
-        // Bybit API keys можуть варіюватися
-        return apiKey.length >= 20 && apiSecret.length >= 20;
-      case 'okx':
-        // OKX API keys також можуть варіюватися
-        return apiKey.length >= 20 && apiSecret.length >= 20;
-      default:
-        return true;
     }
   }
 

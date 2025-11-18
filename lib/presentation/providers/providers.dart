@@ -4,6 +4,7 @@ import '../../data/datasources/local/local_database.dart';
 import '../../data/datasources/local/preferences_service.dart';
 import '../../data/datasources/local/secure_storage.dart';
 import '../../data/datasources/remote/api_client.dart';
+import '../../data/datasources/remote/exchange_manager.dart';
 import '../../data/datasources/remote/websocket_client.dart';
 import '../../data/repositories/auth_repository.dart';
 import '../../data/repositories/storage_repository.dart';
@@ -21,6 +22,14 @@ final apiClientProvider = Provider<ApiClient>((ref) {
 /// WebSocket Client Provider
 final webSocketClientProvider = Provider<WebSocketClient>((ref) {
   return WebSocketClient();
+});
+
+/// Exchange Manager Provider
+final exchangeManagerProvider = Provider<ExchangeManager>((ref) {
+  final exchangeManager = ExchangeManager(ref.watch(secureStorageProvider));
+  // Ініціалізуємо налаштовані біржі
+  exchangeManager.initializeConfiguredExchanges();
+  return exchangeManager;
 });
 
 /// Local Database Provider
@@ -78,5 +87,6 @@ final executeTradeUseCaseProvider = Provider<ExecuteTradeUseCase>((ref) {
   return ExecuteTradeUseCase(
     ref.watch(tradingRepositoryProvider),
     ref.watch(validateRiskUseCaseProvider),
+    ref.watch(exchangeManagerProvider),
   );
 });
