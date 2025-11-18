@@ -1,10 +1,12 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:logger/logger.dart';
 
+import '../../core/config/app_config.dart';
 import '../../data/models/opportunity_model.dart';
 import '../../data/datasources/remote/websocket_client.dart';
 import '../../domain/entities/risk_settings.dart';
 import '../../domain/usecases/validate_risk.dart';
+import 'auth_provider.dart';
 import 'providers.dart';
 import 'settings_provider.dart';
 
@@ -13,11 +15,23 @@ final opportunitiesStreamProvider = StreamProvider<List<ArbitrageOpportunity>>((
   final webSocketClient = ref.watch(webSocketClientProvider);
   final logger = Logger();
 
-  // TODO: Підключення до WebSocket з токеном
-  // final authState = ref.watch(authProvider);
-  // if (authState.isAuthenticated) {
-  //   await webSocketClient.connect(wsUrl, authToken);
-  // }
+  // Підключення до WebSocket з токеном
+  final authState = ref.watch(authProvider);
+  if (authState.isAuthenticated && authState.user != null) {
+    try {
+      final authRepository = ref.read(authRepositoryProvider);
+      final token = await authRepository.getStoredToken();
+
+      if (token != null) {
+        logger.i('Connecting to WebSocket with token');
+        await webSocketClient.connect(AppConfig.wsUrl, token);
+      } else {
+        logger.w('No token available for WebSocket connection');
+      }
+    } catch (e) {
+      logger.e('Failed to connect to WebSocket: $e');
+    }
+  }
 
   final opportunities = <ArbitrageOpportunity>[];
 

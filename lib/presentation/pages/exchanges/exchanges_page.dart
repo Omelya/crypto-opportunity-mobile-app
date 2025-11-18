@@ -376,26 +376,54 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
     });
 
     try {
-      // Simulate API call
+      final storageRepository = ref.read(storageRepositoryProvider);
+      final keys = await storageRepository.getExchangeApiKeys(exchangeId);
+
+      if (keys == null || keys['apiKey'] == null || keys['apiSecret'] == null) {
+        throw Exception('API keys not found');
+      }
+
+      final apiKey = keys['apiKey']!;
+      final apiSecret = keys['apiSecret']!;
+
+      // Базова валідація формату ключів
+      if (apiKey.isEmpty || apiSecret.isEmpty) {
+        throw Exception('API keys cannot be empty');
+      }
+
+      if (apiKey.length < 20 || apiSecret.length < 20) {
+        throw Exception('API keys seem too short');
+      }
+
+      // Симуляція API виклику
+      // В реальному додатку тут буде виклик до API біржі
       await Future.delayed(const Duration(seconds: 2));
 
-      // TODO: Replace with actual exchange API test
-      final success = DateTime.now().millisecond % 2 == 0;
+      // Для демонстрації: успіх якщо ключі валідні за форматом
+      // В production тут має бути реальний API виклик:
+      // - Binance: GET /api/v3/account
+      // - Bybit: GET /v5/user/query-api
+      // - OKX: GET /api/v5/account/balance
+
+      final success = _validateKeyFormat(exchangeId, apiKey, apiSecret);
 
       setState(() {
         _testingConnections[exchangeId] = false;
         _connectionStatus[exchangeId] = success
-            ? 'Connection successful'
-            : 'Failed: Invalid API keys';
+            ? 'Keys format valid. Configure real API endpoint to test connection.'
+            : 'Invalid key format';
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success ? 'Connection test passed!' : 'Connection test failed',
+              success
+                ? 'Keys format validated. Real API test requires backend configuration.'
+                : 'Connection test failed: Invalid key format',
             ),
             backgroundColor: success ? AppTheme.successGreen : AppTheme.errorRed,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -404,6 +432,32 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
         _testingConnections[exchangeId] = false;
         _connectionStatus[exchangeId] = 'Error: ${e.toString()}';
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Test failed: ${e.toString()}'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
+    }
+  }
+
+  /// Базова валідація формату API ключів
+  bool _validateKeyFormat(String exchangeId, String apiKey, String apiSecret) {
+    switch (exchangeId) {
+      case 'binance':
+        // Binance API keys зазвичай 64 символи
+        return apiKey.length >= 32 && apiSecret.length >= 32;
+      case 'bybit':
+        // Bybit API keys можуть варіюватися
+        return apiKey.length >= 20 && apiSecret.length >= 20;
+      case 'okx':
+        // OKX API keys також можуть варіюватися
+        return apiKey.length >= 20 && apiSecret.length >= 20;
+      default:
+        return true;
     }
   }
 

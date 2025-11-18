@@ -1,17 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 
 /// Екран завантаження
-class SplashPage extends StatefulWidget {
+class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
 
   @override
-  State<SplashPage> createState() => _SplashPageState();
+  ConsumerState<SplashPage> createState() => _SplashPageState();
 }
 
-class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateMixin {
+class _SplashPageState extends ConsumerState<SplashPage> with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
@@ -43,8 +46,19 @@ class _SplashPageState extends State<SplashPage> with SingleTickerProviderStateM
 
     if (!mounted) return;
 
-    // TODO: Додати перевірку автентифікації та навігацію
-    // Наразі просто показуємо splash
+    // Перевіряємо статус автентифікації
+    await ref.read(authProvider.notifier).checkAuthStatus();
+
+    if (!mounted) return;
+
+    final authState = ref.read(authProvider);
+
+    // Навігація на відповідний екран
+    if (authState.isAuthenticated) {
+      context.goToDashboard();
+    } else {
+      context.goToLogin();
+    }
   }
 
   @override
