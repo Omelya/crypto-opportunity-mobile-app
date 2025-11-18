@@ -1,18 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../providers/auth_provider.dart';
 
 /// Екран входу
-class LoginPage extends StatefulWidget {
+class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
 
   @override
-  State<LoginPage> createState() => _LoginPageState();
+  ConsumerState<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
+class _LoginPageState extends ConsumerState<LoginPage> {
   final _formKey = GlobalKey<FormState>();
   final _telegramIdController = TextEditingController();
   bool _isLoading = false;
@@ -33,11 +37,10 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
-      // TODO: Додати логіку автентифікації через Riverpod provider
       final telegramId = int.parse(_telegramIdController.text);
 
-      // Симуляція запиту
-      await Future.delayed(const Duration(seconds: 1));
+      // Надсилаємо запит на отримання коду
+      await ref.read(authProvider.notifier).loginWithTelegram(telegramId);
 
       if (!mounted) return;
 
@@ -49,7 +52,8 @@ class _LoginPageState extends State<LoginPage> {
         ),
       );
 
-      // TODO: Навігація на екран верифікації коду
+      // Навігація на екран верифікації коду
+      context.goToVerification(telegramId);
     } catch (e) {
       if (!mounted) return;
 
