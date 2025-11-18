@@ -1,0 +1,72 @@
+name: premium_trading_mobile
+description: Mobile app for cryptocurrency arbitrage trading
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # State Management
+  flutter_riverpod: ^2.4.10
+  riverpod_annotation: ^2.3.3
+
+  # Networking
+  dio: ^5.4.0
+  web_socket_channel: ^2.4.0
+
+  # Local Storage
+  sqflite: ^2.3.2
+  flutter_secure_storage: ^9.0.0
+  shared_preferences: ^2.2.2
+
+  # Navigation
+  go_router: ^13.0.1
+
+  # Code Generation
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+
+  # UI
+  fl_chart: ^0.66.2
+  intl: ^0.19.0
+
+  # Firebase (Push Notifications)
+  firebase_core: ^2.24.2
+  firebase_messaging: ^14.7.10
+  firebase_crashlytics: ^3.4.9
+
+  # Utilities
+  logger: ^2.0.2+1
+  uuid: ^4.3.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  # Linting
+  flutter_lints: ^3.0.1
+
+  # Code Generation
+  build_runner: ^2.4.8
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.3.9
+
+  # Testing
+  mockito: ^5.4.4
+
+flutter:
+  uses-material-design: true
+
+  # assets:
+  #   - assets/images/
+  #   - assets/icons/
+
+  # fonts:
+  #   - family: Roboto
+  #     fonts:
+  #       - asset: fonts/Roboto-Regular.ttf
