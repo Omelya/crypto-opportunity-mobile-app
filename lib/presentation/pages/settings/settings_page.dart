@@ -5,6 +5,7 @@ import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/settings_provider.dart';
+import '../../providers/theme_provider.dart';
 
 /// Екран налаштувань
 class SettingsPage extends ConsumerWidget {
@@ -14,6 +15,7 @@ class SettingsPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final riskSettings = ref.watch(riskSettingsProvider);
     final authState = ref.watch(authProvider);
+    final themeState = ref.watch(themeProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -102,11 +104,9 @@ class SettingsPage extends ConsumerWidget {
           _buildListTile(
             context,
             'Theme',
-            'Light mode',
+            _getThemeModeLabel(themeState.themeMode),
             Icons.palette,
-            () {
-              // TODO: Theme selection
-            },
+            () => _showThemeDialog(context, ref),
           ),
 
           _buildListTile(
@@ -338,6 +338,75 @@ class SettingsPage extends ConsumerWidget {
     );
   }
 
+  String _getThemeModeLabel(ThemeMode themeMode) {
+    switch (themeMode) {
+      case ThemeMode.light:
+        return 'Light mode';
+      case ThemeMode.dark:
+        return 'Dark mode';
+      case ThemeMode.system:
+        return 'System default';
+    }
+  }
+
+  void _showThemeDialog(BuildContext context, WidgetRef ref) {
+    final currentThemeMode = ref.read(themeProvider).themeMode;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select Theme'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            RadioListTile<ThemeMode>(
+              title: const Text('Light'),
+              subtitle: const Text('Always use light theme'),
+              value: ThemeMode.light,
+              groupValue: currentThemeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setThemeMode(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('Dark'),
+              subtitle: const Text('Always use dark theme'),
+              value: ThemeMode.dark,
+              groupValue: currentThemeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setThemeMode(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+            RadioListTile<ThemeMode>(
+              title: const Text('System'),
+              subtitle: const Text('Follow system settings'),
+              value: ThemeMode.system,
+              groupValue: currentThemeMode,
+              onChanged: (value) {
+                if (value != null) {
+                  ref.read(themeProvider.notifier).setThemeMode(value);
+                  Navigator.pop(context);
+                }
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showResetDialog(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -378,7 +447,7 @@ class SettingsPage extends ConsumerWidget {
       builder: (context) => AlertDialog(
         title: const Text('Clear All Data'),
         content: const Text(
-          'This will remove all local data including trades history. This action cannot be undone.',
+          'This will remove all local data including trades history, settings, and exchange configurations. This action cannot be undone.',
         ),
         actions: [
           TextButton(
@@ -386,15 +455,41 @@ class SettingsPage extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           ElevatedButton(
-            onPressed: () {
-              // TODO: Clear all data
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('All data cleared'),
-                  backgroundColor: AppTheme.successGreen,
-                ),
-              );
+            onPressed: () async {
+              try {
+                // Очищення всіх даних
+                final storageRepository = ref.read(storageRepositoryProvider);
+                final localDatabase = ref.read(localDatabaseProvider);
+
+                await storageRepository.clearAllData();
+                await localDatabase.clearAllTables();
+
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('All data cleared successfully'),
+                      backgroundColor: AppTheme.successGreen,
+                    ),
+                  );
+
+                  // Виходимо з аккаунту після очищення
+                  await ref.read(authProvider.notifier).logout();
+                  if (context.mounted) {
+                    context.goToLogin();
+                  }
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  Navigator.pop(context);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error clearing data: $e'),
+                      backgroundColor: AppTheme.errorRed,
+                    ),
+                  );
+                }
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.errorRed,

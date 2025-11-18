@@ -376,26 +376,51 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
     });
 
     try {
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
+      final storageRepository = ref.read(storageRepositoryProvider);
+      final keys = await storageRepository.getExchangeApiKeys(exchangeId);
 
-      // TODO: Replace with actual exchange API test
-      final success = DateTime.now().millisecond % 2 == 0;
+      if (keys == null || keys['apiKey'] == null || keys['apiSecret'] == null) {
+        throw Exception('API keys not found');
+      }
+
+      final apiKey = keys['apiKey']!;
+      final apiSecret = keys['apiSecret']!;
+
+      // Базова валідація формату ключів
+      if (apiKey.isEmpty || apiSecret.isEmpty) {
+        throw Exception('API keys cannot be empty');
+      }
+
+      if (apiKey.length < 20 || apiSecret.length < 20) {
+        throw Exception('API keys seem too short');
+      }
+
+      // Використовуємо Exchange Manager для реального тестування API
+      final exchangeManager = ref.read(exchangeManagerProvider);
+
+      // Ініціалізуємо біржу з ключами
+      await exchangeManager.initializeExchange(exchangeId);
+
+      // Тестуємо підключення через реальний API
+      final success = await exchangeManager.testConnection(exchangeId);
 
       setState(() {
         _testingConnections[exchangeId] = false;
         _connectionStatus[exchangeId] = success
-            ? 'Connection successful'
-            : 'Failed: Invalid API keys';
+            ? 'Connection successful! API keys are valid.'
+            : 'Connection failed. Please check your API keys.';
       });
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              success ? 'Connection test passed!' : 'Connection test failed',
+              success
+                  ? 'Connection test passed! Your API keys are working correctly.'
+                  : 'Connection test failed. Please verify your API keys and permissions.',
             ),
             backgroundColor: success ? AppTheme.successGreen : AppTheme.errorRed,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -404,6 +429,15 @@ class _ExchangesPageState extends ConsumerState<ExchangesPage> {
         _testingConnections[exchangeId] = false;
         _connectionStatus[exchangeId] = 'Error: ${e.toString()}';
       });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Test failed: ${e.toString()}'),
+            backgroundColor: AppTheme.errorRed,
+          ),
+        );
+      }
     }
   }
 

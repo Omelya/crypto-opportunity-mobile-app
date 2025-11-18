@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../core/router/app_router.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../providers/auth_provider.dart';
 
@@ -304,13 +305,18 @@ class _VerificationPageState extends ConsumerState<VerificationPage> {
 
     if (authState.isAuthenticated) {
       // Success - navigate to dashboard
-      // TODO: Navigate to dashboard
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Verification successful!'),
           backgroundColor: AppTheme.successGreen,
         ),
       );
+
+      // Навігація на dashboard
+      await Future.delayed(const Duration(milliseconds: 500));
+      if (mounted) {
+        context.goToDashboard();
+      }
     }
   }
 

@@ -100,7 +100,66 @@ class LocalDatabase {
   /// Оновлення бази даних при зміні версії
   Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
     _logger.i('Upgrading database from v$oldVersion to v$newVersion');
-    // TODO: Додати міграції при оновленні схеми
+
+    // Застосовуємо міграції послідовно
+    for (var version = oldVersion + 1; version <= newVersion; version++) {
+      await _runMigration(db, version);
+    }
+
+    _logger.i('Database upgrade completed');
+  }
+
+  /// Виконання міграції для конкретної версії
+  Future<void> _runMigration(Database db, int version) async {
+    _logger.i('Running migration for version $version');
+
+    switch (version) {
+      case 2:
+        await _migrateToV2(db);
+        break;
+      case 3:
+        await _migrateToV3(db);
+        break;
+      // Додавайте нові міграції тут
+      default:
+        _logger.w('No migration defined for version $version');
+    }
+  }
+
+  /// Приклад міграції до версії 2
+  /// Додає нову колонку для комісій
+  Future<void> _migrateToV2(Database db) async {
+    _logger.i('Migrating to v2: Adding fees columns');
+
+    await db.execute('''
+      ALTER TABLE trades ADD COLUMN buy_fee REAL DEFAULT 0.0
+    ''');
+
+    await db.execute('''
+      ALTER TABLE trades ADD COLUMN sell_fee REAL DEFAULT 0.0
+    ''');
+
+    _logger.i('Migration to v2 completed');
+  }
+
+  /// Приклад міграції до версії 3
+  /// Додає таблицю для статистики
+  Future<void> _migrateToV3(Database db) async {
+    _logger.i('Migrating to v3: Adding statistics table');
+
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS daily_statistics (
+        date TEXT PRIMARY KEY,
+        total_trades INTEGER DEFAULT 0,
+        successful_trades INTEGER DEFAULT 0,
+        failed_trades INTEGER DEFAULT 0,
+        total_profit REAL DEFAULT 0.0,
+        total_loss REAL DEFAULT 0.0,
+        created_at INTEGER NOT NULL
+      )
+    ''');
+
+    _logger.i('Migration to v3 completed');
   }
 
   // ============= CRUD операції для угод =============
@@ -281,6 +340,11 @@ class LocalDatabase {
     await db.delete('opportunities_cache');
 
     _logger.w('All data cleared from database');
+  }
+
+  /// Псевдонім для clearAllData
+  Future<void> clearAllTables() async {
+    await clearAllData();
   }
 
   /// Перетворення Map в Trade

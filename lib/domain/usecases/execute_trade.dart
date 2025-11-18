@@ -1,6 +1,7 @@
 import 'package:logger/logger.dart';
 import 'package:uuid/uuid.dart';
 
+import '../../data/datasources/remote/exchange_manager.dart';
 import '../../data/models/opportunity_model.dart';
 import '../../data/models/trade_model.dart';
 import '../../data/repositories/trading_repository.dart';
@@ -11,12 +12,14 @@ import 'validate_risk.dart';
 class ExecuteTradeUseCase {
   final TradingRepository _tradingRepository;
   final ValidateRiskUseCase _validateRisk;
+  final ExchangeManager _exchangeManager;
   final Logger _logger = Logger();
   final _uuid = const Uuid();
 
   ExecuteTradeUseCase(
     this._tradingRepository,
     this._validateRisk,
+    this._exchangeManager,
   );
 
   /// Виконання угоди
@@ -165,9 +168,7 @@ class ExecuteTradeUseCase {
     }
   }
 
-  /// Симуляція виконання ордера на купівлю
-  ///
-  /// В реальному додатку тут буде інтеграція з біржами через їх API
+  /// Виконання ордера на купівлю через біржовий API
   Future<_OrderResult> _executeBuyOrder({
     required String exchange,
     required String pair,
@@ -177,24 +178,26 @@ class ExecuteTradeUseCase {
     try {
       _logger.d('Executing BUY order: $exchange $pair $amount @ $price');
 
-      // Симуляція затримки мережі (100-500ms)
-      await Future.delayed(Duration(milliseconds: 100 + (DateTime.now().millisecond % 400)));
+      // Реальна інтеграція з біржами через Exchange Manager
+      final result = await _exchangeManager.placeBuyOrder(
+        exchange: exchange,
+        symbol: pair,
+        amount: amount,
+        price: price,
+      );
 
-      // TODO: Реальна інтеграція з біржами
-      // Binance: await _binanceClient.placeBuyOrder(...)
-      // Bybit: await _bybitClient.placeBuyOrder(...)
-      // OKX: await _okxClient.placeBuyOrder(...)
-
-      // Симуляція успішного ордера
-      final orderId = '${exchange.toUpperCase()}_BUY_${_uuid.v4().substring(0, 8)}';
-      final filledAmount = amount;
-      final totalSpent = amount * price;
+      if (!result.success) {
+        _logger.e('Buy order failed: ${result.error}');
+      } else {
+        _logger.i('Buy order successful: ${result.orderId}');
+      }
 
       return _OrderResult(
-        success: true,
-        orderId: orderId,
-        filledAmount: filledAmount,
-        totalSpent: totalSpent,
+        success: result.success,
+        orderId: result.orderId,
+        filledAmount: result.filledAmount,
+        totalSpent: result.totalSpent,
+        error: result.error,
       );
     } catch (e) {
       _logger.e('Buy order error: $e');
@@ -205,9 +208,7 @@ class ExecuteTradeUseCase {
     }
   }
 
-  /// Симуляція виконання ордера на продаж
-  ///
-  /// В реальному додатку тут буде інтеграція з біржами через їх API
+  /// Виконання ордера на продаж через біржовий API
   Future<_OrderResult> _executeSellOrder({
     required String exchange,
     required String pair,
@@ -217,24 +218,26 @@ class ExecuteTradeUseCase {
     try {
       _logger.d('Executing SELL order: $exchange $pair $amount @ $price');
 
-      // Симуляція затримки мережі (100-500ms)
-      await Future.delayed(Duration(milliseconds: 100 + (DateTime.now().millisecond % 400)));
+      // Реальна інтеграція з біржами через Exchange Manager
+      final result = await _exchangeManager.placeSellOrder(
+        exchange: exchange,
+        symbol: pair,
+        amount: amount,
+        price: price,
+      );
 
-      // TODO: Реальна інтеграція з біржами
-      // Binance: await _binanceClient.placeSellOrder(...)
-      // Bybit: await _bybitClient.placeSellOrder(...)
-      // OKX: await _okxClient.placeSellOrder(...)
-
-      // Симуляція успішного ордера
-      final orderId = '${exchange.toUpperCase()}_SELL_${_uuid.v4().substring(0, 8)}';
-      final filledAmount = amount;
-      final totalReceived = amount * price;
+      if (!result.success) {
+        _logger.e('Sell order failed: ${result.error}');
+      } else {
+        _logger.i('Sell order successful: ${result.orderId}');
+      }
 
       return _OrderResult(
-        success: true,
-        orderId: orderId,
-        filledAmount: filledAmount,
-        totalReceived: totalReceived,
+        success: result.success,
+        orderId: result.orderId,
+        filledAmount: result.filledAmount,
+        totalReceived: result.totalReceived,
+        error: result.error,
       );
     } catch (e) {
       _logger.e('Sell order error: $e');
